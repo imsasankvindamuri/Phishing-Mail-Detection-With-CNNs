@@ -207,7 +207,7 @@ marimo/_lsp/
 __marimo__/
 
 # Dataset
+data/*
 
-data/raw/
-data/processed/
-*.csv
+# testfile
+test.py
