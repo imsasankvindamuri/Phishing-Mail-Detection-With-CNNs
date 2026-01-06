@@ -211,3 +211,6 @@ data/*
 
 # testfile
 test.py
+
+# Ignore all analytics spreadsheets
+analytics/spreadsheets/
