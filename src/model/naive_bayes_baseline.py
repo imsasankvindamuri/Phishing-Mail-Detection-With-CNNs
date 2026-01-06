@@ -1,7 +1,7 @@
 import time
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import joblib
 
@@ -25,11 +25,7 @@ def main():
     X_train_vec = vectorizer.fit_transform(X_train)
     X_test_vec = vectorizer.transform(X_test)
 
-    model = RandomForestClassifier(
-        n_estimators=200,
-        random_state=42,
-        n_jobs=-1
-    )
+    model = MultinomialNB()
 
     start_train = time.time()
     model.fit(X_train_vec, y_train)
@@ -49,13 +45,14 @@ def main():
     }
 
     pd.DataFrame([metrics]).to_csv(
-        "analytics/results/metrics/random_forest.csv",
+        "analytics/results/metrics/naive_bayes.csv",
         index=False
     )
 
-    joblib.dump(model, "analytics/results/models/random_forest.joblib")
+    joblib.dump(model, "analytics/results/models/naive_bayes.joblib")
+    joblib.dump(vectorizer, "analytics/results/models/tfidf_vectorizer.joblib")
 
-    print("Random Forest results:", metrics)
+    print("Naive Bayes results:", metrics)
 
 if __name__ == "__main__":
     main()

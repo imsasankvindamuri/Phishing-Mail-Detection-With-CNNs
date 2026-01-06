@@ -1,0 +1,17 @@
+{
+  "exclude": [
+    "**/__pycache__",
+    "**/.pytest_cache",
+    ".venv",
+    ".poetry*",
+    "dist",
+    "build",
+    "*.egg-info"
+  ],
+  "venvPath": "/home/vss/.cache/pypoetry/virtualenvs",
+  "venv": "phishing-mail-detection-with-cnns-GQiIG8rh-py3.12",
+  "typeCheckingMode": "strict",
+  "reportMissingImports": true,
+  "useLibraryCodeForTypes": true,
+  "reportMissingTypeStubs": "warning"
+}
