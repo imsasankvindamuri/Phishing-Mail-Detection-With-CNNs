@@ -214,3 +214,4 @@ test.py
 
 # Ignore all analytics spreadsheets
 analytics/spreadsheets/
+analytics/results/models/*.joblib
