@@ -1,60 +1,68 @@
 # Phishing Email Detection using CNN-DQA
 
-Capstone project adapting Zhu et al.'s PDHF hybrid CNN approach from **phishing URLs** to **phishing emails**.
+Capstone project adapting Zhu et al.'s CNN-DQA hybrid approach from **phishing URLs** to **phishing emails**.
 
 ## Overview
 
-This project implements a hybrid phishing detection system that combines:
-- **Traditional ML baselines**: Naive Bayes and Random Forest classifiers
-- **Deep learning**: CNN with simplified Disorderly Quantized Attention (DQA) adapted for email text
+This project implements a hybrid phishing detection system comparing three approaches:
+- **Traditional ML baselines**: Naive Bayes and Random Forest classifiers with TF-IDF features
+- **Deep learning**: CNN with Zipf-based Disorderly Quantized Attention (DQA) adapted for email text
 
-**Key adaptation**: The original paper (Zhu et al., 2024) applied CNN-DQA to URL strings. We adapt this architecture for natural language email text
-by using word-level tokenization instead of character-level encoding.
+**Key adaptation**: The original paper (Zhu et al., 2024) applied CNN-DQA to URL strings using character-level encoding and dynamic programming segmentation.
+We adapt this architecture for natural language email text by using word-level tokenization and direct Zipf weighting, eliminating URL-specific preprocessing
+while preserving the core attention mechanism.
+
+**Research question**: Does a CNN architecture designed for phishing URLs transfer effectively to natural language emails?
 
 ## Project Structure
 
 ```
 .
 ├── analytics/
-│   ├── pictures/          # Visualizations (Zipf distribution, performance graphs)
+│   ├── pictures/          # Visualizations (Zipf distribution, model comparisons)
 │   └── results/
-│       ├── metrics/       # Model performance CSVs
-│       ├── models/        # Saved model files (.joblib, .keras)
-│       └── vocabulary.json # 10k word vocabulary with statistics
+│       ├── metrics/       # Model performance CSVs (NB, RF, CNN-DQA)
+│       ├── models/        # Saved trained models (.joblib, .keras)
+│       └── vocabulary.json # 10k word vocabulary with corpus statistics
 ├── data/
-│   ├── raw/              # Original phishing_email.csv (not in repo)
-│   └── processed/        # train.csv, val.csv, test.csv splits
+│   ├── raw/              # Original phishing_email.csv (82,487 emails)
+│   └── processed/        # train.csv (80%), val.csv (10%), test.csv (10%)
 ├── src/
-│   ├── feature_engineering/
-│   │   ├── artificial_features.py  # Feature extraction (not used in current approach)
-│   │   └── deep_features/
-│   │       └── cnn_dqa_model.py   # CNN-DQA architecture
 │   ├── model/
-│   │   ├── naive_bayes_baseline.py      # NB classifier
-│   │   └── random_forest_classifier.py  # RF classifier
+│   │   ├── naive_bayes_baseline.py       # TF-IDF + Multinomial NB
+│   │   ├── random_forest_classifier.py   # TF-IDF + Random Forest
+│   │   └── cnn_dqa_classifier.py         # CNN with Zipf attention
 │   └── utils/
-│       ├── build_vocabulary.py   # Vocabulary construction
-│       └── tokenizer.py          # Text → padded sequences
-├── THEORY.md             # Architectural decisions and paper adaptations
+│       ├── build_vocabulary.py   # Vocabulary construction + Zipf analysis
+│       ├── tokenizer.py          # Text → padded integer sequences
+│       └── zipf_weightage.py     # Zipf-based attention weight computation
+├── THEORY.md             # Architectural adaptations and defense Q&A
 └── README.md             # This file
 ```
 
 ## Dataset
 
-This project uses a publicly available phishing email dataset released under a Creative Commons Attribution license. The dataset contains approximately
-82,500 emails (phishing and legitimate) compiled from multiple sources including Enron, Ling, CEAS, Nazario, Nigerian Fraud, and SpamAssassin datasets.
+**Source**: Kaggle Phishing Email Dataset (82,487 emails)  
+**License**: Creative Commons Attribution  
+**Composition**: Compiled from Enron, Ling, CEAS, Nazario, Nigerian Fraud, and SpamAssassin datasets  
+**Preprocessing**: Already lowercased, stemmed, and cleaned (space-separated text, punctuation removed)  
+**Class balance**: ~52% phishing, ~48% legitimate across all splits
 
-**Citation:**  
+**Citation**:  
 Al-Subaiey et al., *Novel Interpretable and Robust Web-based AI Platform for Phishing Email Detection*, arXiv:2405.11619 (2024).  
 Available at: https://www.kaggle.com/datasets/naserabdullahalam/phishing-email-dataset
-
-**Preprocessing:** The Kaggle dataset is already lowercased, stemmed, and cleaned. Text is space-separated with punctuation removed.
 
 ## Setup
 
 ### Requirements
-- Python 3.11+
-- Poetry (dependency management)
+- Python 3.12+
+- poetry (dependency management)
+- pandas 2.3.3+
+- matplotlib 3.10.8+
+- tensorflow 2.20.0+
+- keras 3.13.1+
+- scikit-learn 1.8.0+
+- GPU recommended for CNN training (Google Colab T4 used in this project)
 
 ### Installation
 
@@ -77,63 +85,159 @@ poetry install
 ```bash
 poetry run python3 src/preprocessing.py
 ```
-Splits raw data into train (80%), validation (10%), test (10%) sets.
+Splits raw data into train (80%), validation (10%), test (10%) with balanced class distribution.
 
 ### 2. Build Vocabulary
 
 ```bash
 poetry run python3 src/utils/build_vocabulary.py
 ```
-Creates vocabulary of 9,998 most frequent words (reserves index 0=PAD, 1=UNK).
+- Creates vocabulary of top 9,998 words (reserves indices 0=PAD, 1=UNK)
+- Generates Zipf's law distribution plot (`analytics/pictures/zipf_distribution.png`)
+- Saves vocabulary with corpus statistics to `analytics/results/vocabulary.json`
 
-### 3. Train Baselines
+### 3. Train Models
 
 ```bash
-# Naive Bayes
+# Naive Bayes (CPU, ~0.02s training time)
 poetry run python3 src/model/naive_bayes_baseline.py
 
-# Random Forest
+# Random Forest (CPU, ~32s training time)
 poetry run python3 src/model/random_forest_classifier.py
+
+# CNN-DQA (GPU recommended, ~55s on Colab T4)
+poetry run python3 src/model/cnn_dqa_classifier.py
 ```
 
-### 4. Train CNN-DQA
+**Note**: CNN training requires GPU. Use Google Colab with T4 GPU for efficient training:
+1. Upload project to GitHub
+2. Clone in Colab, install dependencies
+3. Runtime → Change runtime type → T4 GPU
+4. Run training script
 
-```bash
-poetry run python3 src/train_cnn_dqa.py
+## Results
+
+### Model Performance
+
+| Model | Accuracy | Precision | Recall | F1-Score | Training Time | Inference (ms/email) |
+|-------|----------|-----------|--------|----------|---------------|----------------------|
+| **Naive Bayes** | 97.56% | 98.62% | 96.67% | 97.63% | 0.023s | 0.00035 |
+| **Random Forest** | 98.47% | 98.58% | 98.48% | 98.53% | 32.2s | 0.0225 |
+| **CNN-DQA** | 98.97% | 98.70% | 99.32% | 99.01% | 54.6s | 0.143 |
+
+### Key Findings
+
+1. **CNN-DQA achieves highest accuracy** (98.97%), beating Random Forest by 0.5% and Naive Bayes by 1.4%
+
+2. **CNN-DQA has highest recall** (99.32%), making it best for security applications where missing phishing emails is costly
+
+3. **Computational tradeoffs**:
+   - Naive Bayes: Fastest (2400x faster training than CNN), suitable for resource-constrained deployment
+   - Random Forest: Balanced performance, but 1400x slower training than NB for only 1% accuracy gain
+   - CNN-DQA: Best accuracy/recall, but 2.4x slower training and 6.4x slower inference than RF
+
+4. **Domain transfer successful**: CNN-DQA architecture designed for URLs generalizes effectively to natural language emails
+
+### Performance Analysis
+
+**Why CNN-DQA wins on recall**:
+- Zipf attention amplifies rare words ("verify", "urgent", "transfer") that are strong phishing indicators
+- Dual-kernel CNN (sizes 3 & 5) captures both short and long phishing phrases
+- Deep architecture learns complex patterns beyond TF-IDF bag-of-words
+
+**Production deployment considerations**:
+- **High-throughput systems**: Use Naive Bayes (fastest inference)
+- **Balanced accuracy/speed**: Use Random Forest
+- **Maximum accuracy needed**: Use CNN-DQA (accepts slower inference for better catch rate)
+
+## Implementation Details
+
+### CNN-DQA Architecture
+
+- **Input**: Tokenized email sequences (max length 500)
+- **Embedding**: 10,000 vocab → 128-dimensional dense vectors
+- **Zipf Attention**: Weight embeddings by word rarity (`weight = ln(rank) + 1`)
+- **Dual-kernel CNN**: Parallel 1D convolutions with kernel sizes 3 and 5 (64 filters each)
+- **Pooling**: GlobalMaxPooling extracts strongest activations per filter
+- **Classification**: Concatenate features → Dense(128) → Dropout(0.5) → Sigmoid output
+
+### Zipf Weighting Formula
+
 ```
-*Note: Training requires GPU. Use Google Colab for free T4 GPU access.*
+For word at vocabulary index i:
+  - If i = 0 (PAD): weight = 0.0
+  - If i = 1 (UNK): weight = ln(5000) + 1 ≈ 9.5 (median)
+  - If i ≥ 2 (vocab): weight = ln(i) + 1
 
-### 5. Evaluate Models
-
-```bash
-poetry run python3 src/evaluate.py
+Result: Rare words get ~6x more weight than common words
 ```
-Generates comparison metrics and visualizations.
 
-## Results (Preliminary)
+### Key Parameters
 
-| Model | Accuracy | Precision | Recall | F1-Score | Training Time |
-|-------|----------|-----------|--------|----------|---------------|
-| Naive Bayes | 97.56% | 98.62% | 96.67% | 97.63% | 0.023s |
-| Random Forest | 98.47% | 98.58% | 98.48% | 98.53% | 32.2s |
-| CNN-DQA | TBD | TBD | TBD | TBD | TBD |
+| Parameter | Value | Justification |
+|-----------|-------|---------------|
+| Vocabulary size | 10,000 | Covers 98%+ of corpus, manageable embedding size |
+| Sequence length | 500 tokens | Covers mean (160) + 3σ of email lengths |
+| Embedding dim | 128 | From paper (Table 9: p=128) |
+| CNN kernels | [3, 5] | Paper Section 5.2 (q1=3, q2=5) |
+| Filters per kernel | 64 | Paper Table 10 (K=64) |
+| Batch size | 256 | Standard for NLP tasks |
+| Learning rate | 0.001 | Adam optimizer default |
 
-**Key Finding:** Random Forest's 1% accuracy improvement over Naive Bayes comes at 1400x computational cost. CNN-DQA evaluation will determine if deep learning
-justifies its complexity.
+## Architectural Adaptations
 
-## Implementation Notes
+See `THEORY.md` for comprehensive explanation of how we adapted Zhu et al.'s URL-based model to emails:
 
-- **Vocabulary size:** 10,000 words (including PAD and UNK tokens)
-- **Sequence length:** 500 tokens (covers mean + 3σ of email lengths)
-- **CNN architecture:** Dual-kernel (sizes 3 & 5), 64 filters each
-- **Embedding dimension:** 128
-- **Attention mechanism:** Simplified Zipf-based weighting (see THEORY.md)
+1. **Tokenization**: Character-level → Word-level (emails have natural word boundaries)
+2. **Segmentation**: Skip dynamic programming (no ambiguous word boundaries in natural language)
+3. **Attention**: Direct Zipf weighting on vocabulary ranks (preserve core insight, remove URL-specific machinery)
+4. **Features**: Deep-only (no artificial URL/HTML features in preprocessed text dataset)
+
+## Defense Panel Q&A
+
+**Q: Why not use character-level encoding like the paper?**  
+A: Character-level is for URLs without spaces. Emails use natural language with clear word boundaries, so word-level tokenization (standard in NLP) is appropriate.
+
+**Q: Why skip dynamic programming segmentation?**  
+A: DP solves URL word segmentation ("loginpage" → "login page"), which doesn't exist in emails with whitespace.
+
+**Q: Is this still CNN-DQA without full DP machinery?**  
+A: Yes. DQA's core contribution is Zipf-based attention weighting (Equation 14), which we preserve. DP is preprocessing specific to URLs, not the attention mechanism itself.
+
+**Q: Why use CNN if Random Forest is faster?**  
+A: Research question was domain transfer validation. CNN achieves 0.5% higher accuracy with significantly better recall (99.32% vs 98.48%)—important for security applications
+where false negatives are costly.
+
+## Limitations and Future Work
+
+### Current Limitations
+1. **Preprocessing dependency**: Requires pre-stemmed, cleaned text (dataset constraint)
+2. **Computational cost**: 404x slower inference than Naive Bayes
+3. **No artificial features**: Dataset lacks email metadata (sender domain, headers, attachments)
+4. **Single language**: English-only (dataset constraint)
+
+### Future Extensions
+1. **Add metadata features**: Sender domain reputation, subject line patterns, attachment presence
+2. **Transformer baseline**: Compare against BERT/RoBERTa embeddings
+3. **Multi-modal approach**: Combine text CNN with header/metadata features
+4. **Adversarial robustness**: Test against character substitution attacks
+5. **Real-time preprocessing**: Build end-to-end pipeline accepting raw email text
 
 ## References
 
-**Primary Paper:**  
+### Primary Paper
 Zhu, E., Cheng, K., Zhang, Z., & Wang, H. (2024). PDHF: Effective phishing detection model combining optimal artificial and automatic deep features.
-*Computers & Security*, 136, 103561.
+*Computers & Security*, 136, 103561.  
+https://doi.org/10.1016/j.cose.2023.103561
 
-**Dataset:**  
-Al-Subaiey et al. (2024). Phishing Email Dataset. Kaggle. https://www.kaggle.com/datasets/naserabdullahalam/phishing-email-dataset
+### Dataset
+Al-Subaiey et al. (2024). Phishing Email Dataset. Kaggle.  
+https://www.kaggle.com/datasets/naserabdullahalam/phishing-email-dataset
+
+### Related Work
+- Xiao et al. (2020). CNN-MHSA: Multi-head self-attention for phishing detection. *Neural Networks*, 125, 303-312.
+- Chai et al. (2022). Multi-modal hierarchical attention for phishing websites. *IEEE Trans. Dependable Secure Comput.*, 19(2), 790-803.
+
+## License
+
+This project is for academic use only. Dataset is licensed under Creative Commons Attribution.
