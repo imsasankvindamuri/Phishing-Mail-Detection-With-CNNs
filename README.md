@@ -19,25 +19,27 @@ while preserving the core attention mechanism.
 ```
 .
 ├── analytics/
-│   ├── pictures/          # Visualizations (Zipf distribution, model comparisons)
+│   ├── pictures/                         # Visualizations (Zipf distribution, model comparisons)
 │   └── results/
-│       ├── metrics/       # Model performance CSVs (NB, RF, CNN-DQA)
-│       ├── models/        # Saved trained models (.joblib, .keras)
-│       └── vocabulary.json # 10k word vocabulary with corpus statistics
+│       ├── metrics/                      # Model performance CSVs (NB, RF, CNN-DQA)
+│       ├── models/                       # Saved trained models (.joblib, .keras)
+│       └── vocabulary.json               # 10k word vocabulary with corpus statistics
 ├── data/
-│   ├── raw/              # Original phishing_email.csv (82,487 emails)
-│   └── processed/        # train.csv (80%), val.csv (10%), test.csv (10%)
+│   ├── raw/                              # Original phishing_email.csv (82,487 emails)
+│   └── processed/                        # train.csv (80%), val.csv (10%), test.csv (10%)
 ├── src/
+│   ├── main.py                           # Main orchastration script
+│   ├── preprocessing.py                  # Data preprocessing and stratified 80-10-10 split
 │   ├── model/
 │   │   ├── naive_bayes_baseline.py       # TF-IDF + Multinomial NB
 │   │   ├── random_forest_classifier.py   # TF-IDF + Random Forest
 │   │   └── cnn_dqa_classifier.py         # CNN with Zipf attention
 │   └── utils/
-│       ├── build_vocabulary.py   # Vocabulary construction + Zipf analysis
-│       ├── tokenizer.py          # Text → padded integer sequences
-│       └── zipf_weightage.py     # Zipf-based attention weight computation
-├── THEORY.md             # Architectural adaptations and defense Q&A
-└── README.md             # This file
+│       ├── build_vocabulary.py           # Vocabulary construction + Zipf analysis
+│       ├── tokenizer.py                  # Text → padded integer sequences
+│       └── zipf_weightage.py             # Zipf-based attention weight computation
+├── THEORY.md                             # Architectural adaptations and defense Q&A
+└── README.md                             # This file
 ```
 
 ## Dataset
@@ -114,6 +116,8 @@ poetry run python3 src/model/cnn_dqa_classifier.py
 2. Clone in Colab, install dependencies
 3. Runtime → Change runtime type → T4 GPU
 4. Run training script
+
+**While training on CPU is theoretically possible, it is not recommended.**
 
 ## Results
 
