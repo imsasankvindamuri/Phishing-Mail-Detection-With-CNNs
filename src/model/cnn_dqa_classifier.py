@@ -34,6 +34,11 @@ BATCH_SIZE = 256
 EPOCHS = 10
 LEARNING_RATE = 0.001
 
+def ensure_paths():
+    Path(VOCAB_PATH).parent.mkdir(parents=True, exist_ok=True)
+    Path(MODEL_SAVE_PATH).parent.mkdir(parents=True, exist_ok=True)
+    Path(METRICS_SAVE_PATH).parent.mkdir(parents=True, exist_ok=True)
+
 
 class ZipfAttentionLayer(layers.Layer):
     """Applies Zipf-based attention weights to embeddings"""
@@ -187,6 +192,7 @@ def load_and_preprocess_data(csv_path, vocab, max_samples=None):
 
 
 def main():
+    ensure_paths()
     print("=" * 60)
     print("CNN-DQA Phishing Email Classifier")
     print("=" * 60)
