@@ -11,12 +11,12 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.12"
-pandas = "^2.3.3"
-matplotlib = "^3.10.8"
-tensorflow = "^2.20.0"
-keras = "^3.13.1"
-scikit-learn = "^1.8.0"
+python = ">=3.11,<3.13"
+tensorflow = "2.20.0"
+keras = "3.13.1"
+numpy = "2.4.1"
+scipy = "1.17.0"
+scikit-learn = "1.8.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
