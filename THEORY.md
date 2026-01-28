@@ -235,6 +235,21 @@ CNN-DQA will achieve competitive accuracy with traditional ML (Naive Bayes, Rand
 2. **Experiment with BERT embeddings:** Replace word2vec-style embeddings with pre-trained transformers
 3. **Multi-modal approach:** Combine text CNN with header/metadata features
 4. **Adversarial robustness:** Test against perturbation attacks (character substitution, etc.)
+5. **Hyperparameter Tuning:** Attempt to find optimal hyperparameters for CNN-DQA
+
+### Baseline Hyperparameters (Not Yet Optimized)
+
+**Current approach:** We use hyperparameters directly from Zhu et al.'s paper:
+- Vocabulary: 10,000 (matched to paper's 97-character set scaled for words)
+- Embedding dimension: 128 (Table 9, p=128)
+- CNN kernels: 3, 5 (Section 5.2, q1=3, q2=5)
+
+**Planned Next Steps:**
+1. Optimize hyperparameters via grid/Bayesian search
+2. Add email-specific artificial features (Optional)
+
+Hyperparameter tuning without architectural validation is premature. Our baseline results 
+justify proceeding to optimization phase.
 
 ---
 

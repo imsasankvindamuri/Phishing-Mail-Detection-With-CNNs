@@ -156,6 +156,29 @@ poetry run python3 src/model/cnn_dqa_classifier.py
 - **Balanced accuracy/speed**: Use Random Forest
 - **Maximum accuracy needed**: Use CNN-DQA (accepts slower inference for better catch rate)
 
+## Model Status and Future Work
+
+### Current Implementation: Baseline Validation
+This implementation uses **baseline hyperparameters** from Zhu et al. (2024) without tuning:
+- Vocabulary size: 10,000 words
+- Embedding dimension: 128
+- CNN kernel sizes: [3, 5]
+- Filters per kernel: 64
+- Sequence length: 500 tokens
+
+**Rationale:** Domain transfer experiments should validate architecture viability before optimization. 
+Our results (98.97% accuracy, 99.32% recall) confirm CNN-DQA transfers effectively from URLs to emails.
+
+### Planned Hyperparameter Optimization
+
+- Grid search over vocabulary sizes: [5000, 10000, 15000, 20000]
+- Test embedding dimensions: [64, 128, 256]
+- Experiment with kernel combinations: [3,5], [2,4,6], [3,5,7]
+- Optimize sequence length based on email length distribution
+- Use Keras Tuner or Optuna for Bayesian optimization
+
+**Expected outcome:** Further accuracy improvements while maintaining computational efficiency.
+
 ## Implementation Details
 
 ### CNN-DQA Architecture
