@@ -140,28 +140,36 @@ Embedding Layer (10k vocab → 128-dim vectors)
 ```
 
 ### Network Layers
-```
-Input: [batch_size, 500] (padded word indices)
-    ↓
-Embedding: [batch_size, 500, 128]
-    ↓
-┌─────────────────────┬─────────────────────┐
-│ Conv1D (kernel=3)   │ Conv1D (kernel=5)   │
-│ 64 filters          │ 64 filters          │
-│ ReLU activation     │ ReLU activation     │
-└──────────┬──────────┴──────────┬──────────┘
-           ↓                     ↓
-   GlobalMaxPool1D       GlobalMaxPool1D
-           ↓                     ↓
-           └──────── Concatenate ────────┘
-                       ↓
-                Dense(128, ReLU)
-                       ↓
-                  Dropout(0.5)
-                       ↓
-                Dense(1, Sigmoid)
-                       ↓
-              Output: [0, 1] (phishing score)
+
+```mermaid
+flowchart LR
+
+A[Email Text] --> B[Tokenization<br/>Word-level split]
+B --> C[Vocabulary Lookup<br/>Word → Index]
+C --> D[Padding / Truncation<br/>Length = 500]
+
+D --> E1[Token Sequence Input]
+D --> E2[Zipf Weight Computation<br/>ln rank + 1]
+
+E1 --> F[Embedding Layer<br/>10000 → 128]
+E2 --> G[Zipf Weight Vector]
+
+F --> H[Zipf Attention Layer<br/>Element-wise weighting]
+G --> H
+
+H --> I1[Conv1D k=3<br/>64 filters + ReLU]
+H --> I2[Conv1D k=5<br/>64 filters + ReLU]
+
+I1 --> J1[Global Max Pool]
+I2 --> J2[Global Max Pool]
+
+J1 --> K[Concatenate Features]
+J2 --> K
+
+K --> L[Dense 128 + ReLU]
+L --> M[Dropout 0.5]
+M --> N[Dense 1 + Sigmoid]
+N --> O[Phishing Probability]
 ```
 
 ### Hyperparameters (from paper)

@@ -121,6 +121,67 @@ poetry run python3 src/model/cnn_dqa_classifier.py
 
 **While training on CPU is theoretically possible, it is not recommended.**
 
+### **Command Line Interface (CLI) for Prediction**
+
+The project includes a CLI tool (`src/main.py`) for making phishing predictions using any of the implemented models.
+
+#### **Supported Models**
+
+* `nb` — Naive Bayes baseline
+* `rf` — Random Forest baseline
+* `cnn` — CNN-DQA model with Zipf attention
+
+---
+
+#### **Usage**
+
+**Predict from direct text input:**
+
+```
+python -m src.main --model cnn --text "verify your account immediately"
+```
+
+**Predict from a text file:**
+
+```
+python -m src.main --model rf --file sample_email.txt
+```
+
+---
+
+#### **Processing Pipeline**
+
+For each input email:
+
+1. Text is lowercased and cleaned (punctuation removed)
+2. Depending on model:
+
+   * **NB / RF** → TF-IDF vectorization
+   * **CNN-DQA** →
+     * Tokenization using 10k vocabulary
+     * Zipf weight vector computation
+
+3. Model outputs phishing probability
+4. CLI prints:
+
+   * Model used
+   * Probability score
+   * Final predicted label
+   * Inference time (ms)
+
+---
+
+#### **Example Output**
+
+```
+--- Prediction Result ---
+Model:                   CNN
+Probability of phishing: 0.9821
+Predicted label:         PHISHING
+Inference:               0.14 ms
+-------------------------
+```
+
 ## Results
 
 ### Model Performance

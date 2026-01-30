@@ -1,12 +1,13 @@
 import argparse
 import json
+import time
 import joblib
 import numpy as np
 import re
 import tensorflow as tf
 from pathlib import Path
 
-from utils.tokenizer import tokenize_text  # your existing tokenizer
+from utils.tokenizer import tokenize_text
 from model.cnn_dqa_classifier import ZipfAttentionLayer
 from src.utils.zipf_weightage import compute_zipf_weights
 
@@ -53,8 +54,10 @@ def load_cnn():
 def predict_nb_rf(text, model_name):
     model, vectorizer = load_nb_rf(model_name)
     X = vectorizer.transform([text])
+    start = time.time()
     prob = model.predict_proba(X)[0][1]
-    return prob
+    elapsed = (time.time() - start) * 1000
+    return prob, elapsed
 
 
 def predict_cnn(text):
@@ -77,8 +80,10 @@ def predict_cnn(text):
     zipf_seq = np.expand_dims(zipf_seq, axis=0)     # (1, 500)
 
     # predict
+    start = time.time()
     prob = model.predict([token_seq, zipf_seq], verbose=0)[0][0]
-    return float(prob)
+    elapsed = (time.time() - start) * 1000
+    return float(prob), elapsed
 
 # -------------------------
 # CLI
@@ -107,9 +112,9 @@ def main():
 
 
     if args.model in ["nb", "rf"]:
-        prob = predict_nb_rf(cleaned, args.model)
+        prob, inference_time = predict_nb_rf(cleaned, args.model)
     else:
-        prob = predict_cnn(cleaned)
+        prob, inference_time = predict_cnn(cleaned)
 
     label = "PHISHING" if prob >= 0.5 else "LEGITIMATE"
 
@@ -117,7 +122,8 @@ def main():
     print(f"Model:                   {args.model.upper()}")
     print(f"Probability of phishing: {prob:.4f}")
     print(f"Predicted label:         {label}")
-    print("-------------------------\n")
+    print(f"Inference:               {inference_time:.2f} ms")
+    print("-------------------------")
 
 
 if __name__ == "__main__":
