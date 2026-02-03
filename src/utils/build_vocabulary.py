@@ -38,7 +38,7 @@ def build_vocabulary(train_path, vocab_size=10000, output_dir='analytics/results
     vocab_data = {
         'words': [word for word, _ in most_common],
         'word_to_idx': {
-            word: idx + 2  # shift by 2 to reserve PAD=0, UNK=1
+            word: idx + 2
             for idx, (word, _) in enumerate(most_common)
         },
         'pad_idx': PAD_IDX,

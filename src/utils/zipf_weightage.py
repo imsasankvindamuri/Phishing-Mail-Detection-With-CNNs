@@ -32,9 +32,4 @@ def compute_zipf_weights(token_sequence: NDArray[np.int32]) -> NDArray[np.float3
 
 
 if __name__ == "__main__":
-    # Smoke test
-    test_sequence = np.array([0, 1, 2, 100, 5000, 9999], dtype=np.int32)
-    weights = compute_zipf_weights(test_sequence)
-    
-    print("Token indices:", test_sequence)
-    print("Zipf weights:", weights)
+    pass

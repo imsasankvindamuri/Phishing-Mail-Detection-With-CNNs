@@ -1,7 +1,5 @@
 # src/model/cnn_dqa_classifier.py
 
-"""CNN-DQA model for phishing email detection with Zipf attention"""
-
 import time
 import json
 import pandas as pd
@@ -41,20 +39,14 @@ def ensure_paths():
 
 
 class ZipfAttentionLayer(layers.Layer):
-    """Applies Zipf-based attention weights to embeddings"""
-    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
     
     def call(self, inputs):
         embeddings, zipf_weights = inputs
-        # embeddings: (batch, 500, 128)
-        # zipf_weights: (batch, 500)
         
-        # Expand weights to match embedding dimension
-        zipf_weights = tf.expand_dims(zipf_weights, -1)  # (batch, 500, 1)
+        zipf_weights = tf.expand_dims(zipf_weights, -1)
         
-        # Element-wise multiplication (broadcasting)
         weighted = embeddings * zipf_weights
         
         return weighted
@@ -71,31 +63,15 @@ def create_cnn_dqa_model(
     num_filters=NUM_FILTERS,
     dropout_rate=DROPOUT_RATE
 ):
-    """
-    Build CNN-DQA model with Zipf attention.
-    
-    Architecture:
-      1. Embedding layer (vocab → dense vectors)
-      2. Zipf attention (weight embeddings by word rarity)
-      3. Dual-kernel 1D CNN (kernel sizes 3 and 5)
-      4. GlobalMaxPooling (extract strongest features)
-      5. Concatenate both CNN branches
-      6. Dense layer with dropout
-      7. Binary classification head
-    """
-    
-    # Input 1: Token sequences
     input_tokens = layers.Input(shape=(max_length,), dtype=tf.int32, name='token_input')
     
-    # Input 2: Zipf weights
     input_zipf = layers.Input(shape=(max_length,), dtype=tf.float32, name='zipf_input')
     
-    # Embedding layer
     embeddings = layers.Embedding(
         input_dim=vocab_size,
         output_dim=embedding_dim,
         input_length=max_length,
-        mask_zero=True,  # Mask padding tokens
+        mask_zero=True,
         name='embedding'
     )(input_tokens)
     

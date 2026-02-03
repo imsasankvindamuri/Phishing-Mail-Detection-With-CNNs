@@ -1,5 +1,3 @@
-# tokenizer.py
-
 import numpy as np
 from numpy.typing import NDArray
 
@@ -36,15 +34,4 @@ def tokenize_text(
 
 
 if __name__ == "__main__":
-    print("Tokenizer smoke tests")
-
-    test_vocab = {"a": 2, "b": 3, "c": 4}
-    test_length = 10
-    test_strs = [
-        "a b a b a b",
-        "a b b c a b d c",
-        "o s b b a"
-    ]
-
-    for string in test_strs:
-        print(f"{string} → {list(tokenize_text(string, test_vocab, test_length))}")
+    pass
