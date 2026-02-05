@@ -135,16 +135,18 @@ The project includes a CLI tool (`src/main.py`) for making phishing predictions 
 
 #### **Usage**
 
+From project root:
+
 **Predict from direct text input:**
 
 ```
-python -m src.main --model cnn --text "verify your account immediately"
+poetry run python3 ./src/main.py --model cnn --text "verify your account immediately"
 ```
 
 **Predict from a text file:**
 
 ```
-python -m src.main --model rf --file sample_email.txt
+poetry run python3 ./src/main.py --model rf --file sample_email.txt
 ```
 
 ---
