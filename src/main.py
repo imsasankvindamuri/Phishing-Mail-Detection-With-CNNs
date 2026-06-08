@@ -1,4 +1,5 @@
-import argparse
+import tkinter as tk
+from tkinter import ttk, messagebox
 import json
 import time
 import joblib
@@ -7,15 +8,19 @@ import re
 import tensorflow as tf
 from pathlib import Path
 
-from utils.tokenizer import tokenize_text
-from model.cnn_dqa_classifier import ZipfAttentionLayer
-from src.utils.zipf_weightage import compute_zipf_weights
+# NOTE: Ensure these local imports still work in your folder structure
+try:
+    from utils.tokenizer import tokenize_text
+    from model.cnn_dqa_classifier import ZipfAttentionLayer
+    from src.utils.zipf_weightage import compute_zipf_weights
+except ImportError:
+    # If you moved files, you might need to adjust these paths
+    pass
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # -------------------------
-# Basic preprocessing
+# Backend Logic
 # -------------------------
 def basic_clean(text: str) -> str:
     text = text.lower()
@@ -23,108 +28,134 @@ def basic_clean(text: str) -> str:
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
+class PredictionEngine:
+    """Class to handle model loading and prediction logic"""
+    def __init__(self):
+        self.model_path = BASE_DIR / "analytics/results/models"
+        self.vocab_path = BASE_DIR / "analytics/results/vocabulary.json"
+        self.cached_models = {}
+        self.vectorizer = None
+
+    def get_nb_rf(self, name):
+        if name not in self.cached_models:
+            if not self.vectorizer:
+                self.vectorizer = joblib.load(self.model_path / "tfidf_vectorizer.joblib")
+            
+            file_name = "naive_bayes.joblib" if name == "nb" else "random_forest.joblib"
+            self.cached_models[name] = joblib.load(self.model_path / file_name)
+        return self.cached_models[name], self.vectorizer
+
+    def get_cnn(self):
+        if "cnn" not in self.cached_models:
+            model_file = self.model_path / "cnn_dqa_model.keras"
+            self.cached_models["cnn"] = tf.keras.models.load_model(
+                model_file,
+                custom_objects={"ZipfAttentionLayer": ZipfAttentionLayer}
+            )
+        return self.cached_models["cnn"]
+
+    def predict(self, text, model_name):
+        start = time.time()
+        
+        if model_name in ["nb", "rf"]:
+            model, vectorizer = self.get_nb_rf(model_name)
+            X = vectorizer.transform([text])
+            prob = model.predict_proba(X)[0][1]
+        else:
+            model = self.get_cnn()
+            with open(self.vocab_path) as f:
+                vocab = json.load(f)["word_to_idx"]
+            
+            token_seq = np.expand_dims(tokenize_text(text, vocab), axis=0)
+            zipf_seq = np.expand_dims(compute_zipf_weights(token_seq[0]), axis=0)
+            prob = model.predict([token_seq, zipf_seq], verbose=0)[0][0]
+            
+        elapsed = (time.time() - start) * 1000
+        return float(prob), elapsed
 
 # -------------------------
-# Load models
+# GUI Interface
 # -------------------------
-def load_nb_rf(model_name):
-    model_path = BASE_DIR / "analytics/results/models"
-    vectorizer = joblib.load(model_path / "tfidf_vectorizer.joblib")
+class PhishingApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Sentinel: Phishing Email Detector")
+        self.root.geometry("700x650")
+        self.engine = PredictionEngine() # Init backend
+        
+        # Styles
+        self.style = ttk.Style()
+        self.style.configure("Header.TLabel", font=("Segoe UI", 16, "bold"))
+        self.style.configure("Result.TLabel", font=("Segoe UI", 14, "bold"))
+        
+        self.setup_ui()
 
-    if model_name == "nb":
-        model = joblib.load(model_path / "naive_bayes.joblib")
-    else:
-        model = joblib.load(model_path / "random_forest.joblib")
+    def setup_ui(self):
+        main_frame = ttk.Frame(self.root, padding="20")
+        main_frame.pack(fill="both", expand=True)
 
-    return model, vectorizer
+        # Inputs
+        ttk.Label(main_frame, text="📧 Email Security Scanner", style="Header.TLabel").grid(row=0, column=0, pady=(0, 20), sticky="w")
+        
+        ttk.Label(main_frame, text="Subject Line:").grid(row=1, column=0, sticky="w")
+        self.subject_entry = ttk.Entry(main_frame, width=60)
+        self.subject_entry.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
+        ttk.Label(main_frame, text="Email Body:").grid(row=3, column=0, sticky="w")
+        self.body_text = tk.Text(main_frame, height=10, font=("Segoe UI", 10))
+        self.body_text.grid(row=4, column=0, columnspan=2, sticky="nsew", pady=(0, 15))
 
-def load_cnn():
-    model_path = BASE_DIR / "analytics/results/models/cnn_dqa_model.keras"
+        # Controls
+        ctrls = ttk.Frame(main_frame)
+        ctrls.grid(row=5, column=0, columnspan=2, sticky="ew")
+        
+        self.model_var = tk.StringVar(value="cnn")
+        ttk.Label(ctrls, text="Model:").pack(side="left")
+        ttk.Combobox(ctrls, textvariable=self.model_var, values=("nb", "rf", "cnn"), state="readonly").pack(side="left", padx=10)
+        
+        ttk.Button(ctrls, text="Clear", command=self.clear_fields).pack(side="right", padx=5)
+        ttk.Button(ctrls, text="Analyze Email", command=self.run_analysis).pack(side="right")
 
-    model = tf.keras.models.load_model(
-        model_path,
-        custom_objects={"ZipfAttentionLayer": ZipfAttentionLayer}
-    )
-    return model
+        # Visual Result Box
+        self.res_box = tk.Frame(main_frame, relief="flat", bg="#f0f0f0", pady=20)
+        self.res_box.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(20, 0))
+        
+        self.status_lbl = tk.Label(self.res_box, text="READY TO SCAN", font=("Segoe UI", 14, "bold"), bg="#f0f0f0")
+        self.status_lbl.pack()
+        
+        self.stats_lbl = tk.Label(self.res_box, text="Enter email details to begin", bg="#f0f0f0")
+        self.stats_lbl.pack()
 
-# -------------------------
-# Prediction functions
-# -------------------------
-def predict_nb_rf(text, model_name):
-    model, vectorizer = load_nb_rf(model_name)
-    X = vectorizer.transform([text])
-    start = time.time()
-    prob = model.predict_proba(X)[0][1]
-    elapsed = (time.time() - start) * 1000
-    return prob, elapsed
+    def clear_fields(self):
+        self.subject_entry.delete(0, tk.END)
+        self.body_text.delete("1.0", tk.END)
+        self.status_lbl.config(text="READY TO SCAN", fg="black")
 
+    def run_analysis(self):
+        text = f"{self.subject_entry.get()} {self.body_text.get('1.0', tk.END)}".strip()
+        if len(text) < 5:
+            messagebox.showwarning("Warning", "Email content is too short to analyze.")
+            return
 
-def predict_cnn(text):
-    model = load_cnn()
+        self.status_lbl.config(text="SCANNING...", fg="blue")
+        self.root.update_idletasks()
 
-    # load vocab
-    vocab_path = BASE_DIR / "analytics/results/vocabulary.json"
-    with open(vocab_path) as f:
-        vocab_data = json.load(f)
-    vocab = vocab_data["word_to_idx"]
+        try:
+            prob, speed = self.engine.predict(basic_clean(text), self.model_var.get())
+            
+            # Update UI based on result
+            is_phish = prob >= 0.5
+            color = "#cc0000" if is_phish else "#228b22"
+            label = "PHISHING DETECTED" if is_phish else "LEGITIMATE"
+            
+            self.status_lbl.config(text=label, fg=color)
+            self.stats_lbl.config(text=f"Phishing Probability: {prob:.2%} | Time: {speed:.2f}ms")
+            self.res_box.config(highlightbackground=color, highlightthickness=2, relief="solid")
 
-    # tokenize
-    token_seq = tokenize_text(text, vocab)  # (500,)
-    
-    # compute zipf weights
-    zipf_seq = compute_zipf_weights(token_seq)  # (500,)
-
-    # add batch dimension
-    token_seq = np.expand_dims(token_seq, axis=0)   # (1, 500)
-    zipf_seq = np.expand_dims(zipf_seq, axis=0)     # (1, 500)
-
-    # predict
-    start = time.time()
-    prob = model.predict([token_seq, zipf_seq], verbose=0)[0][0]
-    elapsed = (time.time() - start) * 1000
-    return float(prob), elapsed
-
-# -------------------------
-# CLI
-# -------------------------
-def main():
-    parser = argparse.ArgumentParser(description="Phishing Email Detection CLI")
-    parser.add_argument("--model", choices=["nb", "rf", "cnn"], required=True)
-    parser.add_argument("--text", help="Input email text")
-    parser.add_argument("--file", help="Path to text file")
-
-    args = parser.parse_args()
-
-    if not args.text and not args.file:
-        raise ValueError("Provide --text or --file")
-
-    if args.file:
-        with open(args.file) as f:
-            raw_text = f.read()
-    else:
-        raw_text = args.text
-
-    cleaned = basic_clean(raw_text)
-    if len(cleaned) == 0:
-        print("Input empty after cleaning.")
-        return
-
-
-    if args.model in ["nb", "rf"]:
-        prob, inference_time = predict_nb_rf(cleaned, args.model)
-    else:
-        prob, inference_time = predict_cnn(cleaned)
-
-    label = "PHISHING" if prob >= 0.5 else "LEGITIMATE"
-
-    print("\n--- Prediction Result ---")
-    print(f"Model:                   {args.model.upper()}")
-    print(f"Probability of phishing: {prob:.4f}")
-    print(f"Predicted label:         {label}")
-    print(f"Inference:               {inference_time:.2f} ms")
-    print("-------------------------")
-
+        except Exception as e:
+            messagebox.showerror("System Error", f"Model Error: {str(e)}")
 
 if __name__ == "__main__":
-    main()
+    root = tk.Tk()
+    app = PhishingApp(root)
+    root.mainloop()

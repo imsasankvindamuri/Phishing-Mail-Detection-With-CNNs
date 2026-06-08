@@ -1,0 +1,14 @@
+%%{init: {'flowchart': {'nodeSpacing': 40, 'rankSpacing': 50}}}%%
+
+flowchart TD
+
+A[Weighted Embeddings] --> B1[Conv1D<br/>k=3, 64 filters]
+A --> B2[Conv1D<br/>k=5, 64 filters]
+
+B1 --> C1[Global Max Pool]
+B2 --> C2[Global Max Pool]
+
+C1 --> D[Feature Concatenation]
+C2 --> D
+
+D --> E[Extracted Feature Vector]

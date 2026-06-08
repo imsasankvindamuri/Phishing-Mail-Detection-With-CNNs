@@ -1,0 +1,8 @@
+%%{init: {'flowchart': {'nodeSpacing': 25, 'rankSpacing': 30}}}%%
+
+flowchart TD
+
+A[Feature Vector] --> B[Dense Layer<br/>128 + ReLU]
+B --> C[Dropout<br/>0.5]
+C --> D[Output Layer<br/>Sigmoid]
+D --> E[Phishing / Legitimate]

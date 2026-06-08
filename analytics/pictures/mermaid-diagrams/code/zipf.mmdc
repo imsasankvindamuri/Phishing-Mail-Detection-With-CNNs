@@ -1,0 +1,14 @@
+%%{init: {'flowchart': {'nodeSpacing': 30, 'rankSpacing': 40}}}%%
+
+flowchart TD
+
+A[Token Sequence] --> B[Embedding Layer<br/>128-dim Vectors]
+A --> C[Zipf Weight Computation<br/>ln rank + 1]
+
+B --> D[Word Embeddings]
+C --> E[Weight Vector]
+
+D --> F[Zipf Attention Layer<br/>Element-wise Multiplication]
+E --> F
+
+F --> G[Weighted Embeddings]

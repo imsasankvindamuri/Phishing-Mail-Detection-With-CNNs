@@ -1,0 +1,8 @@
+%%{init: {'flowchart': {'nodeSpacing': 25, 'rankSpacing': 30}}}%%
+
+flowchart TD
+
+A[Word Sequence] --> B[Vocabulary Mapping<br/>Word → Index]
+B --> C[Token Sequence]
+C --> D[Padding / Truncation<br/>Length = 500]
+D --> E[Normalized Input Sequence]

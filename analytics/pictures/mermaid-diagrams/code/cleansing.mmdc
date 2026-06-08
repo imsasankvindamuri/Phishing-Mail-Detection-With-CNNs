@@ -1,0 +1,7 @@
+%%{init: {'flowchart': {'nodeSpacing': 25, 'rankSpacing': 30}}}%%
+
+flowchart TD
+
+A[Raw Email Text] --> B[Text Cleaning<br/>Lowercase + Remove Symbols]
+B --> C[Tokenization<br/>Whitespace Split]
+C --> D[Word Sequence]
